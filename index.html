@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title>合租薄</title>
+		<link href="css/mui.min.css" rel="stylesheet" />
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav">
+			<a class="mui-icon mui-icon-bars mui-pull-right" style="color: #FF5053;"></a>
+			<a class="mui-icon mui-icon-refresh mui-pull-left" style="color: #FF5053;"></a>
+			<h1 class="mui-title" style="color:#FF5053;">合租薄</h1>
+		</header>
+		<div class="mui-content">
+			<div class="mui-btn-block mui-btn-danger" onclick="preMonth()" style="text-align: center;">
+				上月
+			</div>
+			<div id="myContent">
+				<div id="nowMother" style="background-color:gainsboro;padding: 10px;">1988-01</div>
+				<ul class="mui-table-view mui-scroll">
+					<li class="mui-table-view-cell">
+						暂无数据
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div id="nameAlert" class="mui-popup mui-popup-in" style="display: none;">
+			<div class="mui-popup-inner">
+				<div class="mui-popup-title">今天谁记账</div>
+				<br />
+				<div id="nameAlertSelect" style="margin-bottom: 2px;">
+				</div>
+			</div>
+			<div id="okbtn" class="mui-popup-button">
+				确认
+			</div>
+		</div>
+
+		<!--底部选项卡-->
+		<nav id="write" class="mui-bar mui-bar-tab" style="border-radius: 50px;width: 60px;height: 60px;float: left;margin: auto;bottom: 10px;border: groove;background-color: transparent">
+			<a class="mui-tab-item mui-active" href="javascript:void(0);">
+				<span class="mui-icon mui-icon-compose" style="color: #FF5053;"></span>
+			</a>
+		</nav>
+
+		<!--即使是底部工具条和底部选项卡，也要放在.mui-content之前，否则固定栏会遮住部分主内容-->
+		<script src="js/mui.min.js"></script>
+		<script src="js/util.js" type="text/javascript" charset="utf-8"></script>
+		<script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.8.0/dist/av-min.js"></script>
+		<script type="text/javascript" charset="utf-8">
+			mui.init();
+			mui.plusReady(function() {
+				//只在手机运行的代码
+			});
+			
+			//蒙版
+			var mask = mui.createMask(function() { //callback为用户点击蒙版时自动执行的回调；
+				mui("#nameAlert")[0].setAttribute("style", "display: none;");
+			});
+			
+			//learncloud
+			const { Query, User } = AV;
+			AV.init({
+	  			appId: "uE97MowVVLC3yyGUBAUVmTJG-gzGzoHsz",
+			  	appKey: "FtvBemnkV23wnY2d6BU3C2zY",
+			 	serverURL: "https://ue97mowv.lc-cn-n1-shared.com"
+			});
+			
+			console.log(localStorage.getItem('username'));
+			
+			//定义并初始化所有人员数组
+			var personArrays = [];
+			const query = new AV.Query('HZK_USER');
+			query.equalTo('username', localStorage.getItem('username'));
+			query.find().then((res) => {
+				if(res.length>0){
+					res.forEach(function(data) {
+						var team = data.attributes.team;
+						team=team.replace("，",",");
+						personArrays=team.split(',');
+					});
+				}
+				
+				var isFirstTime=true;
+				personArrays.forEach(function(name){
+					if(isFirstTime){
+						person=name;
+						nameAlertSelect.innerHTML='<button onclick="who(this)" class="mui-btn-negative namebtn" style="margin-right: 10px;">'+name+'</button>';
+						isFirstTime=false; 
+					}else{
+						nameAlertSelect.innerHTML=nameAlertSelect.innerHTML+'<button onclick="who(this)" class="namebtn"  style="margin-right: 10px;">'+name+'</button>';
+					}
+				});
+				
+				queryMonth(0,getNowFormatDate().substr(0, 7),0);
+			});
+
+			 var ul = document.createElement("ul");
+			 ul.className = "mui-table-view mui-scroll";
+			 
+			//cleancloud查询
+			function queryMonth(personIndex,mydate,nodataCount){
+				const query = new AV.Query('HZK_DATA');
+				query.startsWith('date', mydate);
+				query.equalTo('username',localStorage.getItem('username'));
+				query.equalTo('name',personArrays[personIndex]);
+				query.find().then((res) => {
+					if(res.length>0){
+						showData(res,mydate);
+					}else {
+						nodataCount++;
+					}
+					
+					if(nodataCount==personArrays.length){
+						mui("#myContent")[0].innerHTML = "";
+						var div = document.createElement("div");
+						div.innerHTML = "" + mydate;
+						div.setAttribute("style", "margin: 8px 5px;");
+						mui("#myContent")[0].appendChild(div);
+						ul = document.createElement("ul");
+						ul.className = "mui-table-view mui-scroll";
+						var li = document.createElement("li");
+						li.className = "mui-table-view-cell";
+						li.innerHTML = '暂无数据';
+						ul.appendChild(li);
+						mui("#myContent")[0].appendChild(ul);
+					}
+					
+					if(personIndex<personArrays.length-1){
+						queryMonth(++personIndex,mydate,nodataCount);
+					}
+				});
+			}
+
+			//定义一个全局变量存谁记账
+			var person;
+
+			//展示查询数据
+			function showData(res,mydate) {
+				mui("#myContent")[0].innerHTML = "";
+				var div = document.createElement("div");
+				div.innerHTML = "" + mydate;
+				div.setAttribute("style", "margin: 8px 5px;");
+				mui("#myContent")[0].appendChild(div);
+				mui("#myContent")[0].appendChild(ul);
+
+				var tempName=[];
+				res.forEach(function(data) {
+					var name = data.attributes.name;
+					
+					if(tempName.indexOf(name) < 0){
+						tempName.push(name);
+						var li = document.createElement("li");
+						li.className = "mui-table-view-cell";
+						li.id=name;
+						li.innerHTML = name;
+						var ul2 = document.createElement("ul");
+						ul2.className = "mui-table-view";
+						
+						var li3 = document.createElement("li");
+						li3.className = "mui-table-view-cell";
+						li3.innerHTML=data.attributes.date;
+						
+						var li4 = document.createElement("li");
+						li4.className = "mui-table-view-cell";
+						
+						var ul5 = document.createElement("ul");
+						ul5.className = "mui-table-view";
+						
+						var value=str2map(data.attributes.value);
+						value.forEach(function(v,k){
+							var li6 = document.createElement("li");
+							li6.className = "mui-table-view-cell";
+							li6.setAttribute('belong',name);
+							li6.innerHTML=k+'：￥<lable belong='+name+'>'+v+'</lable>';
+							ul5.appendChild(li6);
+						});
+						
+						li4.appendChild(ul5);
+						ul2.appendChild(li3);
+						ul2.appendChild(li4);
+						li.appendChild(ul2);
+						ul.appendChild(li);
+					}else{
+						var li = document.getElementById(name);
+						var ul2 = document.createElement("ul");
+						ul2.className = "mui-table-view";
+						
+						var li3 = document.createElement("li");
+						li3.className = "mui-table-view-cell";
+						li3.innerHTML=data.attributes.date;
+						
+						var li4 = document.createElement("li");
+						li4.className = "mui-table-view-cell";
+						
+						var ul5 = document.createElement("ul");
+						ul5.className = "mui-table-view";
+						
+						var value=str2map(data.attributes.value);
+						value.forEach(function(v,k){
+							var li6 = document.createElement("li");
+							li6.className = "mui-table-view-cell";
+							li6.setAttribute('belong',name);
+							li6.innerHTML=k+'：￥<lable belong='+name+'>'+v+'</lable>';
+							ul5.appendChild(li6);
+						});
+						
+						li4.appendChild(ul5);
+						ul2.appendChild(li3);
+						ul2.appendChild(li4);
+						li.appendChild(ul2);
+					}
+				});
+			}
+			
+			
+			//选中谁记账函数
+			function who(obj, name) {
+				for(var i = 0; i < mui(".namebtn").length; i++) {
+					mui(".namebtn")[i].setAttribute('class', 'namebtn');
+				}
+				obj.setAttribute('class', 'mui-btn-negative namebtn');
+				person = obj.innerText;
+			}
+			
+			//点击写账单按钮
+			mui("#write")[0].addEventListener("tap", function() {
+				mask.show(); //显示遮罩
+				mui("#nameAlert")[0].setAttribute("style", "display: block;");
+			});
+			
+			//点击确认按钮
+			mui("#okbtn")[0].addEventListener("tap", function() {
+				mask.close(); //显示遮罩
+				mui("#nameAlert")[0].setAttribute("style", "display: none;");
+				//计时器，实现页面跳转刷新
+				localStorage.setItem("interval", "20");
+				var iCount = setInterval(function() {
+					if(localStorage.getItem("interval") == 40) {
+						clearInterval(iCount);
+						document.location.reload(); //当前页面 
+					}
+				}, 500);
+				//跳转页面和传参数
+				mui.openWindow({
+					url: "menu/write.html",
+					id: write.html,
+					show: {
+						aniShow: 'pop-in',
+						duration: 300
+					},
+					extras: {
+						name: person //扩展参数
+					},
+					+
+					+
+				});
+			});
+			
+			//刷新页面
+			mui(".mui-icon-refresh")[0].addEventListener("tap", function() {
+				document.location.reload(); //当前页面 
+			});
+			
+			//右上角统计按钮
+			mui(".mui-icon-bars")[0].addEventListener("tap", function() {
+				var moneyList = [];
+				for(var i = 0; i < personArrays.length; i++) {
+					moneyList.push("{'name':'"+personArrays[i]+"','money':'"+spend(mui("lable[belong=" + personArrays[i]+"]"))+"'}");
+				}
+				var allMoney = spend(mui("lable[belong]"));
+				moneyList.push("{'name':'总支出','money':'"+allMoney+"'}"); 
+				var average=allMoney/personArrays.length;
+				//跳转到统计页面
+				mui.openWindow({
+					url: "menu/settlement.html",
+					id: "settlement.html",
+					show: {
+						aniShow: 'pop-in',
+						duration: 300
+					},
+					extras: {
+						moneyList: moneyList, //每个人的钱数
+						average:average  //平均钱数
+					}
+
+				});
+			});
+			//统计花销
+			function spend(objects) {
+				var objects_length = objects.length;
+				var money = 0;
+				for(var i = 0; i < objects_length; i++) {
+					var singlemoney = objects[i].innerText;
+					singlemoney = parseFloat(singlemoney);
+					money += singlemoney;
+				}
+				return money;
+			}
+			//上月记录
+			var c=0;
+			function preMonth(){
+				c++;
+				queryMonth(0,getPreMonth(getNowFormatDate(),c).substr(0, 7),0);
+			}
+		</script>
+	</body>
+
+</html>

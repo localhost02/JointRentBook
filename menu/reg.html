@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link href="../css/mui.min.css" rel="stylesheet" />
+		<link href="../css/style.css" rel="stylesheet" />
+		<style>
+			.area {
+				margin: 20px auto 0px auto;
+			}
+			.mui-input-group:first-child {
+				margin-top: 20px;
+			}
+			.mui-input-group label {
+				width: 22%;
+			}
+			.mui-input-row label~input,
+			.mui-input-row label~select,
+			.mui-input-row label~textarea {
+				width: 78%;
+			}
+			.mui-checkbox input[type=checkbox],
+			.mui-radio input[type=radio] {
+				top: 6px;
+			}
+			.mui-content-padded {
+				margin-top: 25px;
+			}
+			.mui-btn {
+				padding: 10px;
+			}
+			
+		</style>
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav">
+			<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left mui-negative"></a>
+			<h1 class="mui-title">注册</h1>
+		</header>
+		<div class="mui-content">
+			<form class="mui-input-group">
+				<div class="mui-input-row">
+					<label>家庭号</label>
+					<input id='username' type="text" class="mui-input-clear mui-input" placeholder="请输入家庭号">
+				</div>
+				<div class="mui-input-row">
+					<label>成员</label>
+					<input id='team' type="text" class="mui-input-clear mui-input" placeholder="请输入合租成员">
+				</div>
+				<div class="mui-input-row">
+					<label>密码</label>
+					<input id='password' type="password" class="mui-input-clear mui-input" placeholder="请输入密码">
+				</div>
+				<div class="mui-input-row">
+					<label>确认</label>
+					<input id='password_confirm' type="password" class="mui-input-clear mui-input" placeholder="请确认密码">
+				</div>
+				<div class="mui-input-row">
+					<label>邮箱</label>
+					<input id='email' type="email" class="mui-input-clear mui-input" placeholder="请输入邮箱">
+				</div>
+			</form>
+			<div class="mui-content-padded">
+				<button id='reg' class="mui-btn mui-btn-block mui-btn-negative">注册</button>
+			</div>
+			<div class="mui-content-padded">
+				<p>Tips:</p>
+				<p>1. 多个成员，请用逗号分隔，请将成员录入完整；</p>
+				<p>2. 请输入邮箱，后续可用于密码找回等场景；</p>
+				<p>3. 注册成功后，可使用家庭号+密码进行登录。</p>
+			</div>
+		</div>
+		<script src="../js/mui.min.js"></script>
+		<script src="../js/util.js" type="text/javascript" charset="utf-8"></script>
+		<script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.8.0/dist/av-min.js"></script>
+		<script>
+			(function($, doc) {
+				$.init();
+				
+				const { Query, User } = AV;
+				AV.init({
+					appId: "uE97MowVVLC3yyGUBAUVmTJG-gzGzoHsz",
+				  	appKey: "FtvBemnkV23wnY2d6BU3C2zY",
+				 	serverURL: "https://ue97mowv.lc-cn-n1-shared.com"
+				});
+				
+				$.plusReady(function() {
+					var regButton = doc.getElementById('reg');
+					var usernameBox = doc.getElementById('username');
+					var teamBox = doc.getElementById('team');
+					var passwordBox = doc.getElementById('password');
+					var passwordConfirmBox = doc.getElementById('password_confirm');
+					var emailBox = doc.getElementById('email');
+					regButton.addEventListener('tap', function(event) {
+						var regInfo = {
+							username: usernameBox.value,
+							team: teamBox.value.replace("，",","),
+							password: passwordBox.value,
+							email: emailBox.value
+						};
+						
+						if(regInfo.username==''||regInfo.password==''||regInfo.team==''||regInfo.email==''){
+							plus.nativeUI.toast('请输入数据');
+							return;
+						}
+						
+						var reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/;
+						if(!reg.test(regInfo.email)){
+							plus.nativeUI.toast('请输入正确的邮箱格式');
+							return;
+						}
+						
+						var passwordConfirm = passwordConfirmBox.value;
+						if (passwordConfirm != regInfo.password) {
+							plus.nativeUI.toast('密码两次输入不一致');
+							return;
+						}
+						
+						var wt = null; //实例化等待窗
+						wt = plus.nativeUI.showWaiting(); //打开等待
+						
+						//learncloud
+						const { Query, User } = AV;
+						AV.init({
+							appId: "uE97MowVVLC3yyGUBAUVmTJG-gzGzoHsz",
+						  	appKey: "FtvBemnkV23wnY2d6BU3C2zY",
+						 	serverURL: "https://ue97mowv.lc-cn-n1-shared.com"
+						});
+						
+						//查询是否已经注册过
+						const query = new AV.Query('HZK_USER');
+						query.equalTo('username',regInfo.username);
+						query.find().then((res) => {
+							console.log(JSON.stringify(res));
+							if(res.length>0){
+								plus.nativeUI.toast('该家庭号已被注册');
+								//关闭加载动画
+								wt.close();
+							}else{
+								const HzkObject = AV.Object.extend('HZK_USER');
+								db = new HzkObject();
+								db.set('username', regInfo.username);
+								db.set('password', regInfo.password);
+								db.set('email', regInfo.email);
+								db.set('team', regInfo.team);
+								db.save().then((res) => {
+								  	//关闭加载动画
+									wt.close();
+									if(res != null) {
+										plus.nativeUI.toast('注册成功');
+										localStorage.clear();
+										$.openWindow({
+											url: 'login.html',
+											id: 'login',
+											show: {
+												aniShow: 'pop-in'
+											}
+										});
+									} else {
+										plus.nativeUI.toast("网络异常");
+									}
+								});
+							}
+						});
+					});
+				});
+			}(mui, document));
+		</script>
+	</body>
+
+</html>

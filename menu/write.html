@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<link href="../css/mui.min.css" rel="stylesheet" />
+		<link href="//at.alicdn.com/t/font_lqkpfcmw7bymn29.css" rel="stylesheet" />
+	</head>
+
+	<body>
+		<div class="mui-content-padded">
+			<div id="myRows">
+				<div class="myRow">
+					<input type="text" class="mui-input-clear" placeholder="菜名" style="float: left;width: 48%;height: 34px;">
+					<input type="number" class="mui-input-clear" placeholder="￥价格" style="float: right;width: 48%;height: 34px;padding: 5px 15px;">
+				</div>
+			</div>
+			<div>
+				<button id="del" class="mui-btn  mui-btn-negative" style="padding: 5px;float: left;width: 48%;">-</button>
+				<button id="add" class="mui-btn  mui-btn-negative" style="padding: 5px;float: right;width: 48%;">+</button>
+			</div>
+		</div>
+		<!--底部选项卡-->
+		<nav id="submit" class="mui-bar mui-bar-tab" style="border-radius: 50px;width: 60px;height: 60px;float: left;margin: auto;bottom: 10px;border: groove;background-color: transparent">
+			<a class="mui-tab-item mui-active" href="javascript:void(0);">
+				<span class="mui-icon mui-icon-paperplane" style="color: #FF5053;"></span>
+			</a>
+		</nav>
+		<script src="../js/mui.min.js"></script>
+		<script src="../js/util.js" type="text/javascript" charset="utf-8"></script>
+		<script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.8.0/dist/av-min.js"></script>
+		<script type="text/javascript">
+			mui.init();
+			var person = null;
+			var dataId=null;
+			mui.plusReady(function() {
+				//只在手机运行的代码
+				person = plus.webview.currentWebview().name;
+				//重新back方法
+				plus.key.addEventListener("backbutton", function() {
+					//关闭首页时钟线程
+					localStorage.setItem("interval", "40");
+				});
+				
+				const query = new AV.Query('HZK_DATA');
+				query.startsWith('date', getNowFormatDate().substr(0, 10));
+				query.equalTo('name', person);
+				query.find().then((res) => {
+					if(res.length>0){
+						mui("#myRows")[0].innerHTML='';
+						res.forEach(function(data) {
+							var value=str2map(data.attributes.value);
+							dataId=data.id;
+							value.forEach(function(v,k){
+								var div = document.createElement("div");
+								div.className = "myRow";
+								div.innerHTML = '<input type="text" class="mui-input-clear" value="'+k+'" style="float: left;width: 48%;height: 34px;">'+ 
+												'<input type="number" class="mui-input-clear" value="'+v+'" style="float: right;width: 48%;height: 34px;padding: 5px 15px;">';
+								mui("#myRows")[0].appendChild(div);
+							});
+							
+						});
+					}
+				});
+			});
+			
+			//learncloud
+			const { Query, User } = AV;
+			AV.init({
+	  			appId: "uE97MowVVLC3yyGUBAUVmTJG-gzGzoHsz",
+			  	appKey: "FtvBemnkV23wnY2d6BU3C2zY",
+			 	serverURL: "https://ue97mowv.lc-cn-n1-shared.com"
+			});
+			
+
+			//取出点击任务
+			var maps = {};
+
+			//删除一条
+			mui("#del")[0].addEventListener("tap", function() {
+				console.log(mui("#myRows")[0].children.length);
+				var length=mui("#myRows")[0].children.length-1;
+				mui("#myRows")[0].removeChild(mui("#myRows")[0].children[length]);
+			});
+			
+			//添加一条
+			mui("#add")[0].addEventListener("tap", function() {
+				var div = document.createElement("div");
+				div.className = "myRow";
+				div.innerHTML = '<input type="text" class="mui-input-clear" placeholder="菜名" style="float: left;width: 48%;height: 34px;">' +
+					'<input type="number" class="mui-input-clear" placeholder="￥价格" style="float: right;width: 48%;height: 34px;padding: 5px 15px;">';
+				mui("#myRows")[0].appendChild(div);
+			});
+			
+			//提交菜单
+			mui("#submit")[0].addEventListener("tap", function() {
+				var flag = 0;
+				for(var i = 0; i < mui("input").length; i++) {
+					if(mui("input")[i].value.trim() != "") {
+						flag++;
+					}
+				}
+
+				if(flag == mui("input").length) {
+					var wt = null; //实例化等待窗
+					wt = plus.nativeUI.showWaiting(); //打开等待
+					var objlist = mui(".myRow");
+					for(var i = 0; i < objlist.length; i++) {
+						maps[objlist[i].children[0].value] = objlist[i].children[1].value;
+					}
+
+					var db;
+					console.log(dataId); 
+					if(dataId==null){
+						const HzkObject = AV.Object.extend('HZK_DATA');
+						db = new HzkObject();
+					}else{
+						db = AV.Object.createWithoutData('HZK_DATA', dataId);
+					}
+					
+					db.set('date', getNowFormatDate());
+					db.set('name', person);
+					db.set('username', localStorage.getItem('username'));
+					db.set('value', JSON.stringify(maps));
+					db.save().then((res) => {
+					  	//关闭加载动画
+						wt.close();
+						if(res != null) {
+							//数据同步完成
+							plus.nativeUI.toast("提交成功");
+							localStorage.setItem("interval", "40");
+							//跳转页面和传参数
+							mui.back();
+						} else {
+							plus.nativeUI.toast("网络异常");
+						}
+					});
+				} else {
+					plus.nativeUI.toast("请输入后再提交");
+				}
+			});
+		</script>
+	</body>
+
+</html>
