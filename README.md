@@ -13,7 +13,6 @@
 
 # 二、怎么使用？
 1. 登陆软件
-<img src='https://img-blog.csdnimg.cn/20201205221746195.png' width='375' height='812'/>
 2. 选择合租成员记账
 <img src='https://img-blog.csdnimg.cn/20201205201640325.png' width='375' height='812'/>
 3. 录入账单
